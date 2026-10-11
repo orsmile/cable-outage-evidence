@@ -14,8 +14,8 @@ cable 線路上跑了約兩個月，記錄到多次 7–10 秒的瞬斷。本文
 - **平台：** Windows 10/11、macOS、Linux。Python 3.9 以上，只用標準函式庫。
   Windows 另提供打包好的 exe。
 - **網路：** 單一線路。原版的「第二條 DHCP 租約交叉比對」不移植（見 §11）。
-- **數據機：** 第一版支援 Hitron CODA 系列的 `/1/Device/CM/*` API。數據機讀取寫成
-  獨立模組，其他型號由社群補上。沒有可讀的數據機時，探測與報告仍然可用，只是少了
+- **數據機：** 支援 Hitron CODA 系列的 `/1/Device/CM/*` API 與 CBN `/Request` API
+  （依 CG8673V2 介面實作）。其他型號由社群補上。沒有可讀的數據機時，探測與報告仍然可用，只是少了
   DOCSIS 證據。
 - **使用者：** 以台灣用戶為主。介面與報告提供繁體中文和英文。
 
@@ -243,11 +243,11 @@ ping 的例子。
 ### 8.2.1 讀取狀態與通知
 
 數據機讀取的狀態分成五種：`ok`、`unreachable`（沒有 HTTP 回應）、`auth_failed`（帳密被拒）、
-`unsupported`（不是 Hitron CODA 的網頁 API）、`bad_response`（有回應但 `errCode` 不是 `000`，或不是 JSON）。
+`unsupported`（不是支援的 Hitron CODA / CBN 網頁 API）、`bad_response`（有回應但 API 資料無法解析）。
 
 - **`unsupported` 和 `auth_failed` 要分清楚。** 登入回應若不是帶 `result` 欄位的 JSON（例如其他廠牌的
-  HTML 登入頁），或是 HTTP 錯誤頁，就是 `unsupported`，不是帳密錯誤。2026-10-10 一台 CBN 數據機
-  被誤報成帳密錯誤，使用者換了三次帳密都不可能成功。
+  HTML 登入頁），或是 HTTP 錯誤頁，先嘗試 CBN 介面；兩者都不支援才是 `unsupported`，不是帳密錯誤。
+  Hitron 明確拒絕帳密時不嘗試其他介面，避免重複登入。
 - `unsupported` 時讀取數據機首頁，找出廠牌字樣與網頁標題放進通知，方便使用者回報型號；
   監控期間每小時才重試一次；設定對話裡預設選「不讀數據機」；之後啟動會問一次要不要改成不讀。
 
@@ -380,7 +380,7 @@ ping 的例子。
 | `pre_event_seconds` / `post_recovery_seconds` | 120 / 120 | 事件前後保留的取樣 |
 | `public_targets` | `Cloudflare:1.1.1.1 Google:8.8.8.8 TWNIC:101.101.101.101` | 公共目標，`名稱:位址`；名稱用在 CSV 欄位 |
 | `path_discovery_interval_sec` | 300 | 重新找 ISP 第一跳的間隔 |
-| `modem_type` | `hitron-coda` | `none` 表示不讀數據機 |
+| `modem_type` | `auto` | 自動辨識；`cbn` 直接指定 CBN；舊 `hitron-coda` 也自動辨識；`none` 表示不讀數據機 |
 | `modem_url` | `http://192.168.0.1` | |
 | `modem_username` / `modem_password` | `admin` / `password` | Hitron 的原廠預設；`init` 會詢問，直接按 Enter 沿用。存在只有使用者可讀的設定檔 |
 | `modem_state_poll_interval_sec` | 5 | |
@@ -416,3 +416,20 @@ ping 的例子。
 - **輸出檢查：** 所有報告和時間軸都不得含有成因用詞（RF、ingress、雜訊、scheduler、
   RPD 等），§2 的固定背景說明除外。
 - **平台：** 三個平台都要跑過探測、ICMP 降級為系統 `ping` 的路徑、睡眠後恢復。
+
+### CBN `/Request` API
+
+預設 `modem_type = auto`，舊 `hitron-coda` 設定也自動辨識；`cbn` 可直接指定 CBN。
+依 CG8673V2 的介面實作，其他 CBN 韌體須以 `modem-check` 確認。
+
+- 先 GET `/common_page/login.php` 保留 cookie，再讀頁面引用的 `/js/CBN.js.php`（含版本 query），取得 `CSRF_Token`。
+- POST `/Request/Set.php`，`fun = 7` 與 `Username` / `Password` 登入；`fun = 8` 登出。
+- POST `/Request/Get.php`：`fun = 2` 系統、`108` DOCSIS、`11` 日誌。
+- 表單 `Data` 為 base64(encodeURIComponent(JSON))；每次請求帶 Referer 與 CSRF header，接受回應更新 token。
+- CBN 請求序列化，避免並行請求使用過期 token；等候鎖也算入讀取逾時。DOCSIS 四類頻道共用最多 0.5 s 的快取。
+- 上行 `LockStatus = Locked` 映射為 `OPERATE`；OFDMA `STATE = 2` 為 `OPERATE`。保留未鎖定 OFDM / 未運作 OFDMA，不能把消失的狀態隱藏掉。
+- CBN 日誌沒有數值事件碼，只將描述中明確的 T3、T4、CM-STATUS 對應到既有證據規則；其他描述不升級證據強度。
+- CBN `Time` 的實測格式為 `YYYY-MM-DD HH:MM:SS`，在介面層轉成下游共同的 `MM/DD/YYYY HH:MM:SS`；不改變時區或重複套用時差。未知時間仍保留原文，不猜測日期。
+- CM-STATUS 只有描述含精確的 `Event Type Code: 6;` 才是強證據，其他格式維持弱證據。現有 CBN 實機日誌沒有 CM-STATUS，type 6 的端對端測試使用合成字串，尚未確認其他韌體的描述格式。
+- 無效編碼、缺少頻道群組或 session 過期記為讀取失敗，清除登入與快取，讓 worker 下次重新登入。錯誤訊息不回印伺服器原始內容或帳密。
+- 單次連線失敗或逾時只清除 DOCSIS 快取，保留 session 與已收到的 token；若遺失的回應已輪替 token，下次被拒絕後才重新登入。收到 headers 即更新 token，避免讀取 body 逾時後無謂地重新登入。

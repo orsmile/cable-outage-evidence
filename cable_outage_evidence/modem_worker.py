@@ -14,7 +14,7 @@ import threading
 import time
 from typing import Dict, List, Optional, Tuple
 
-from . import config, hitron, storage
+from . import config, hitron, modem, storage
 
 log = logging.getLogger("cable-outage-evidence")
 
@@ -52,11 +52,11 @@ def status_message(status: str, detail: str, cfg, context: str = "monitor") -> s
         return (f"數據機帳密錯誤 / modem login rejected。{where}（預設 admin / password，有些 ISP 會改掉或"
                 f"印在數據機貼紙上）。" + retry + running)
     if status == UNSUPPORTED:
-        return (f"這台數據機不是 Hitron CODA，目前不支援讀取 / unsupported modem ({detail})。"
+        return (f"這台數據機不是 Hitron CODA 或支援的 CBN 韌體，目前不支援讀取 / unsupported modem ({detail})。"
                 "換帳密也不會成功。斷線偵測仍然可以用，只是報告裡不會有 DOCSIS 日誌與頻道狀態。"
                 "歡迎到 https://github.com/orsmile/cable-outage-evidence/issues 提供數據機型號，協助支援。"
                 + running)
-    return (f"數據機回應異常 / unexpected modem response ({detail})。可能不是支援的 Hitron CODA 韌體。"
+    return (f"數據機回應異常 / unexpected modem response ({detail})。可能不是支援的 Hitron CODA 或 CBN 韌體。"
             + running)
 
 
@@ -69,7 +69,7 @@ class ModemWorker:
     def __init__(self, cfg: config.Config, store: storage.Store, client: hitron.HitronClient = None):
         self.cfg = cfg
         self.store = store
-        self.client = client or hitron.HitronClient(cfg.modem_url, cfg.modem_username, cfg.modem_password)
+        self.client = client or modem.create_client(cfg)
         self.lock = threading.Lock()
         self.login_lock = threading.Lock()
         self._stop = threading.Event()
@@ -139,7 +139,7 @@ class ModemWorker:
                     if self.status in (AUTH_FAILED, UNSUPPORTED) and time.monotonic() < self.next_login:
                         # Not retried yet: no request reaches the modem.
                         if self.status == UNSUPPORTED:
-                            raise hitron.ModemUnsupported("not a Hitron CODA (waiting before the next try)")
+                            raise hitron.ModemUnsupported("unsupported modem API (waiting before the next try)")
                         raise hitron.ModemAuthError("login rejected (waiting before the next try)")
                     try:
                         self.client.login()

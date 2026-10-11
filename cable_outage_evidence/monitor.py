@@ -163,7 +163,7 @@ class Monitor:
         self.on_event_start = None
         self.on_event_recovered = None
         self.modem: Optional[modem_worker.ModemWorker] = None
-        if cfg.modem_type == "hitron-coda" and cfg.modem_url:
+        if cfg.modem_type != "none" and cfg.modem_url:
             self.modem = modem_worker.ModemWorker(cfg, self.store)
 
     # --- probing -------------------------------------------------------------

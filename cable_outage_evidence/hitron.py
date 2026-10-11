@@ -185,7 +185,7 @@ def channel_rows(ts: str, reason: str, us=None, of=None, ds=None, dof=None) -> L
     for c in freq_list(of):
         row("us_ofdma", index=c.get("uschindex"), state=c.get("state"), width=c.get("channelBw"),
             powerdbmv=c.get("repPower"), fft=c.get("fftVal"), digatten=c.get("digAtten"),
-            digattenbo=c.get("digAttenBo"), reppower1_6=c.get("repPower1_6"))
+            digattenbo=c.get("digAttenBo"), reppower1_6=c.get("repPower1_6"), modulation=c.get("modulation"))
     for c in freq_list(ds):
         row("ds_scqam", index=c.get("portId"), channelid=c.get("channelId"), state=c.get("lockStatus"),
             frequencyhz=c.get("frequency"), modulation=c.get("modulation"), powerdbmv=c.get("signalStrength"),
@@ -194,7 +194,7 @@ def channel_rows(ts: str, reason: str, us=None, of=None, ds=None, dof=None) -> L
     for c in freq_list(dof):
         row("ds_ofdm", index=c.get("receive"), state=c.get("plclock"), frequencyhz=c.get("Subcarr0freqFreq"),
             powerdbmv=c.get("plcpower"), fft=c.get("ffttype"), plclock=c.get("plclock"),
-            ncplock=c.get("ncplock"), mdc1lock=c.get("mdc1lock"))
+            ncplock=c.get("ncplock"), mdc1lock=c.get("mdc1lock"), modulation=c.get("modulation"))
     return rows
 
 

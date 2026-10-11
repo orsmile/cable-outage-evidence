@@ -9,7 +9,7 @@ the dialogue.
 import getpass
 from typing import Callable, List, Tuple
 
-from . import config, hitron
+from . import config, hitron, modem
 from .modem_worker import AUTH_FAILED, BAD_RESPONSE, OK, UNREACHABLE, UNSUPPORTED, status_message
 
 Ask = Callable[[str], str]
@@ -18,7 +18,7 @@ Ask = Callable[[str], str]
 def check(cfg: config.Config, context: str = "check") -> Tuple[str, List[str]]:
     """Logs in once and reads the channel state. Returns (status, lines to show);
     the lines never contain the password."""
-    client = hitron.HitronClient(cfg.modem_url, cfg.modem_username, cfg.modem_password)
+    client = modem.create_client(cfg)
     try:
         client.login()
         data = {ep: client.get(ep)[0] for ep in ("SysInfo", "UsInfo", "UsOfdm", "DsInfo", "DsOfdm")}
@@ -50,7 +50,7 @@ def ask_settings(cfg: config.Config, ask: Ask, secret: Ask) -> None:
         cfg.modem_type = "none"
         cfg.modem_url = ""
         return
-    cfg.modem_type = "hitron-coda"
+    cfg.modem_type = "auto"
     if url:
         cfg.modem_url = url if "://" in url else "http://" + url
     cfg.modem_username = ask(f"帳號 username [{cfg.modem_username}]: ").strip() or cfg.modem_username

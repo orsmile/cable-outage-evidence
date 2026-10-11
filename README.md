@@ -25,8 +25,9 @@
 ingress）的特徵。工具量不到 ingress 本身，但能把證據整理好，請 ISP 用他們的儀器
 檢查上行。
 
-第一版支援 Hitron CODA 系列數據機。其他型號（例如 CBN）仍然可以記錄斷線，只是報告裡沒有 DOCSIS 日誌與
-頻道狀態；程式會偵測並顯示型號，歡迎到 Issues 回報，或提供 API 資料、PR。
+支援自動辨識 Hitron CODA 與 CBN `/Request` API（依 CG8673V2 介面實作），可記錄 DOCSIS 日誌與
+SC-QAM、OFDM、OFDMA 頻道狀態。CBN 韌體介面不同時仍可能不支援；其他型號仍能記錄斷線。
+歡迎到 Issues 回報型號，或提供 API 資料、PR。
 
 詳細規則見 [docs/spec.md](docs/spec.md)。
 
@@ -59,9 +60,12 @@ py -3 -m unittest discover -s tests -t .       # 測試
 
 macOS / Linux 用 `python3` 取代 `py -3`。
 
-數據機帳密預設為 Hitron 原廠的 `admin` / `password`。如果你的 ISP 改過，執行 `init` 重新設定
+數據機帳密預設為 `admin` / `password`。如果你的 ISP 改過，執行 `init` 重新設定
 （密碼只存在本機的設定檔），再用 `modem-check` 確認連得上。數據機連不上或帳密錯誤時，
 監控會印出通知與處理建議，探測和斷線偵測照常進行。
+
+`modem_type` 預設為 `auto`；可指定 `cbn`，或用 `none` 關閉數據機讀取。舊設定裡的
+`hitron-coda` 也會自動辨識 CBN。若先前已選擇「不讀數據機」，請執行 `init` 重新啟用。
 
 ## English
 
@@ -73,7 +77,10 @@ This tool runs on a PC (Windows, macOS, Linux). It probes every layer of the pat
 every 0.5 s, records the cable modem's DOCSIS event log and channel state, and
 builds an evidence report that states what was observed without guessing a cause.
 
-The first version supports Hitron CODA modems. See [docs/spec.md](docs/spec.md)
+Supports automatic detection of Hitron CODA and CBN's `/Request` API (based on
+the CG8673V2 interface). CBN firmware variants may expose different APIs.
+Legacy `hitron-coda` configurations also detect CBN; use `init` to re-enable
+modem reading if it was previously disabled. See [docs/spec.md](docs/spec.md)
 (Traditional Chinese).
 
 ## License

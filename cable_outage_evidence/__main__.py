@@ -119,7 +119,7 @@ def cmd_start(cfg, args):
     interactive = sys.stdin.isatty()
     print(f"cable-outage-evidence {__version__}")
     if not path.exists():
-        print("第一次使用，先設定數據機。直接按 Enter 會使用括號裡的值（Hitron 原廠預設）。")
+        print("第一次使用，先設定數據機。自動辨識 Hitron / CBN；直接按 Enter 會使用括號裡的值。")
         if interactive:
             setup.interactive(cfg)
         config.save(cfg, path)

@@ -39,7 +39,7 @@ class Config:
         ("Cloudflare", "1.1.1.1"), ("Google", "8.8.8.8"), ("TWNIC", "101.101.101.101")])
     path_discovery_target: str = "1.1.1.1"
     path_discovery_interval_sec: int = 300
-    modem_type: str = "hitron-coda"
+    modem_type: str = "auto"
     modem_url: str = "http://192.168.0.1"
     # Hitron's factory default; some ISPs change it or print it on the label.
     modem_username: str = "admin"
@@ -125,8 +125,8 @@ def validate(cfg: Config) -> None:
             raise ValueError(f"{name} must be at least 1")
     if cfg.modem_fast_statechange_sec < 90:
         raise ValueError("modem_fast_statechange_sec must be at least 90")
-    if cfg.modem_type not in ("hitron-coda", "none"):
-        raise ValueError("modem_type must be hitron-coda or none")
+    if cfg.modem_type not in ("auto", "hitron-coda", "cbn", "none"):
+        raise ValueError("modem_type must be auto, hitron-coda, cbn or none")
 
 
 def save(cfg: Config, path: Path = None) -> Path:

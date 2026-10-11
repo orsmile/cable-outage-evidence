@@ -2,7 +2,7 @@
 
 繁體中文 | English below
 
-> **v0.1.3。** 監控、數據機讀取、事件分類與報告都可以試用；Windows 已實機測試；macOS / Linux 通過自動化測試，還需要實機使用回報。
+> **v0.1.4。** 監控、數據機讀取（Hitron CODA、CBN）、事件分類與報告都可以試用；Windows 已實機測試；macOS / Linux 通過自動化測試，還需要實機使用回報。
 
 ## 這是什麼
 
@@ -69,7 +69,7 @@ macOS / Linux 用 `python3` 取代 `py -3`。
 
 ## English
 
-> **v0.1.3.** Monitoring, modem reading, event classes and reports work. Tested on real hardware on Windows; macOS and Linux pass automated tests and need real-world reports.
+> **v0.1.4.** Monitoring, modem reading (Hitron CODA, CBN), event classes and reports work. Tested on real hardware on Windows; macOS and Linux pass automated tests and need real-world reports.
 
 Short cable (DOCSIS) dropouts of a few seconds often never show up in ISP
 monitoring: the modem stays registered and the ISP's periodic checks see nothing.
